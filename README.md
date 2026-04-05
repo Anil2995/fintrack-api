@@ -1,12 +1,24 @@
 # Finance Backend — fintrack-api
 
-> 🚀 **Live API:** [https://fintrack-apifintrack-api.onrender.com](https://fintrack-apifintrack-api.onrender.com)
+> 🚀 **Live API & Interactive Demo:** [https://fintrack-apifintrack-api.onrender.com](https://fintrack-apifintrack-api.onrender.com)
 > 
 > **Health check:** `GET /health` → `{"status":"ok"}`
 >
-> ⚠️ Hosted on Render free tier — may take ~30 seconds to wake up on the first request after inactivity.
+> ⚠️ *Note: Hosted on Render's free tier. It may take ~30 seconds to wake up on the first request if inactive.*
 
-A backend API for a finance dashboard system with role-based access control, built with Node.js, Express, and MongoDB.
+A complete backend API for a finance dashboard system with role-based access control, built with **Node.js, Express, and MongoDB**.
+
+---
+
+### 🔑 Demo Credentials
+
+To test the Live API immediately (or via Postman), you can use these pre-seeded accounts:
+
+| **Role** | **Email** | **Password** | **Access Level** |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@finance.dev` | `admin123` | Full CRUD, user management, and advanced analytics |
+| **Analyst** | `analyst@finance.dev` | `analyst123` | Create/view/update records and view trend analytics |
+| **Viewer** | `viewer@finance.dev` | `viewer123` | View dashboard summaries and read-only records |
 
 ---
 
@@ -52,15 +64,7 @@ npm run seed
 npm run dev
 ```
 
-The server starts on `http://localhost:5000` by default.
-
-After running the seed, three test accounts are ready:
-
-| Email | Password | Role |
-|---|---|---|
-| admin@finance.dev | admin123 | admin |
-| analyst@finance.dev | analyst123 | analyst |
-| viewer@finance.dev | viewer123 | viewer |
+The server starts on `http://localhost:5000` by default, and serves the **Interactive Demo** on the root URL `/`. All API endpoints are prefixed with `/api`.
 
 ---
 
