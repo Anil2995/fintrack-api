@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinTrack API — Finance Dashboard Backend</title>
+  <meta name="description" content="Role-based finance dashboard backend API built with Node.js, Express and MongoDB. Live interactive demo." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07090f;
+      --surface:   #0d1117;
+      --card:      #161b27;
+      --border:    #21262d;
+      --accent:    #00d4aa;
+      --accent2:   #7c6af7;
+      --income:    #23d18b;
+      --expense:   #f85149;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --admin:     #f0883e;
+      --analyst:   #7c6af7;
+      --viewer:    #58a6ff;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(7,9,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; }
+    .nav-logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .nav-logo-text { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
+    .nav-logo-text span { color: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .badge-live {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px;
+      background: rgba(35,209,139,0.12); border: 1px solid rgba(35,209,139,0.25);
+      font-size: 12px; font-weight: 500; color: var(--income);
+    }
+    .badge-live::before {
+      content: ''; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--income);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .btn-ghost {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent; color: var(--muted);
+      font-size: 13px; font-family: inherit; cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center; padding: 80px 24px 60px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(0,212,170,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px; margin-bottom: 24px;
+      background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.2);
+      font-size: 12px; font-weight: 500; color: var(--accent2);
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 900; letter-spacing: -1.5px; line-height: 1.1;
+      margin-bottom: 18px;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 17px; color: var(--muted); max-width: 540px;
+      margin: 0 auto 36px; line-height: 1.65;
+    }
+    .stack-pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 40px; }
+    .pill {
+      padding: 5px 12px; border-radius: 20px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 12px; font-weight: 500; color: var(--muted);
+    }
+
+    /* ── Section ── */
+    section { max-width: 1100px; margin: 0 auto; padding: 0 24px 72px; }
+    .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .section-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+    /* ── Role Cards ── */
+    .role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .role-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+      cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
+    }
+    .role-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: transparent; transition: background 0.25s;
+    }
+    .role-card.admin-card { --rc: var(--admin); }
+    .role-card.analyst-card { --rc: var(--analyst); }
+    .role-card.viewer-card { --rc: var(--viewer); }
+
+    .role-card:hover { border-color: var(--rc); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+    .role-card:hover::before { background: var(--rc); }
+    .role-card.active { border-color: var(--rc); box-shadow: 0 0 0 1px var(--rc), 0 12px 40px rgba(0,0,0,0.35); }
+    .role-card.active::before { background: var(--rc); }
+
+    .role-icon {
+      width: 44px; height: 44px; border-radius: 12px; margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      background: rgba(255,255,255,0.05);
+    }
+    .role-name { font-weight: 700; font-size: 17px; margin-bottom: 6px; color: var(--rc); }
+    .role-email { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 14px; }
+    .role-perms { display: flex; flex-direction: column; gap: 6px; }
+    .perm {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--muted);
+    }
+    .perm .check { color: var(--income); font-size: 12px; }
+    .perm .cross { color: var(--expense); font-size: 12px; }
+    .role-btn {
+      margin-top: 20px; width: 100%;
+      padding: 10px; border-radius: 10px;
+      border: 1px solid var(--rc);
+      background: rgba(255,255,255,0.04);
+      color: var(--rc); font-family: inherit;
+      font-weight: 600; font-size: 14px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .role-btn:hover { background: var(--rc); color: #000; }
+    .role-btn.loading { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── Stats ── */
+    #stats-section { display: none; }
+    #stats-section.visible { display: block; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+      position: relative; overflow: hidden;
+    }
+    .stat-card::after {
+      content: ''; position: absolute;
+      right: -20px; bottom: -20px;
+      width: 80px; height: 80px; border-radius: 50%;
+      opacity: 0.06;
+    }
+    .stat-card.income-card::after { background: var(--income); }
+    .stat-card.expense-card::after { background: var(--expense); }
+    .stat-card.balance-card::after { background: var(--accent2); }
+    .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 30px; font-weight: 800; letter-spacing: -1px; }
+    .stat-value.income-val { color: var(--income); }
+    .stat-value.expense-val { color: var(--expense); }
+    .stat-value.balance-val { color: var(--accent); }
+    .stat-icon { font-size: 24px; margin-bottom: 12px; }
+
+    /* ── Records ── */
+    .records-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: gap; gap: 12px; }
+    .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-pill {
+      padding: 6px 14px; border-radius: 20px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .filter-pill:hover, .filter-pill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,170,0.08); }
+    .records-table-wrap {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 12px 16px; text-align: left;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    tbody tr { border-bottom: 1px solid rgba(33,38,45,0.6); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td { padding: 13px 16px; font-size: 13px; }
+    .badge-type {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge-income { background: rgba(35,209,139,0.12); color: var(--income); }
+    .badge-expense { background: rgba(248,81,73,0.12); color: var(--expense); }
+    .td-amount { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .td-amount.inc { color: var(--income); }
+    .td-amount.exp { color: var(--expense); }
+    .td-muted { color: var(--muted); font-size: 12px; }
+
+    /* ── RBAC Demo ── */
+    #rbac-section { display: none; }
+    #rbac-section.visible { display: block; }
+    .rbac-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .rbac-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px;
+    }
+    .rbac-card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--muted); }
+    .action-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 10px 14px; border-radius: 10px; margin-bottom: 8px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.2s;
+      color: var(--text);
+    }
+    .action-btn:hover { border-color: var(--accent); }
+    .action-btn:last-child { margin-bottom: 0; }
+    .action-result {
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+    }
+    .result-ok { background: rgba(35,209,139,0.15); color: var(--income); }
+    .result-403 { background: rgba(248,81,73,0.15); color: var(--expense); }
+    .result-pending { background: rgba(139,148,158,0.15); color: var(--muted); }
+
+    /* ── API Console ── */
+    .console-wrap {
+      background: #0a0c12; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    }
+    .console-bar {
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.02);
+    }
+    .dot-r { width: 10px; height: 10px; border-radius: 50%; background: #f85149; }
+    .dot-y { width: 10px; height: 10px; border-radius: 50%; background: #e3b341; }
+    .dot-g { width: 10px; height: 10px; border-radius: 50%; background: #23d18b; }
+    .console-title { font-size: 12px; color: var(--muted); margin-left: 8px; }
+    #console-log {
+      padding: 16px; min-height: 180px; max-height: 320px; overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7;
+    }
+    .log-req  { color: #58a6ff; }
+    .log-ok   { color: #23d18b; }
+    .log-err  { color: #f85149; }
+    .log-info { color: #8b949e; }
+    .log-val  { color: #e3b341; }
+
+    /* ── Endpoints ── */
+    .endpoints-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+    .endpoint-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px;
+    }
+    .method {
+      padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace; min-width: 44px; text-align: center;
+    }
+    .get  { background: rgba(35,209,139,0.12); color: var(--income); }
+    .post { background: rgba(88,166,255,0.12); color: var(--viewer); }
+    .put  { background: rgba(227,179,65,0.12);  color: #e3b341; }
+    .del  { background: rgba(248,81,73,0.12);   color: var(--expense); }
+    .ep-path { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); }
+    .ep-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .ep-roles { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+    .role-tag {
+      padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
+    }
+    .tag-admin   { background: rgba(240,136,62,0.15);  color: var(--admin); }
+    .tag-analyst { background: rgba(124,106,247,0.15); color: var(--analyst); }
+    .tag-viewer  { background: rgba(88,166,255,0.15);  color: var(--viewer); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 40px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 13px;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 48px 24px; color: var(--muted);
+    }
+    .empty-state .big { font-size: 32px; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      nav { padding: 12px 16px; }
+      .hero { padding: 48px 16px 40px; }
+      section { padding: 0 16px 48px; }
+    }
+
+    /* ── Animations ── */
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .current-role-banner {
+      display: none; align-items: center; gap: 10px;
+      padding: 12px 20px; border-radius: 12px; margin-bottom: 28px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .current-role-banner.visible { display: flex; }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">₹</div>
+    <span class="nav-logo-text">Fin<span>Track</span> API</span>
+  </div>
+  <div class="nav-right">
+    <div class="badge-live">Live</div>
+    <a class="btn-ghost" href="https://github.com/Anil2995/fintrack-api" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-tag">🚀 Backend Intern Assignment · Zorvyn FinTech</div>
+  <h1>Finance Dashboard<br><span class="grad">Backend API</span></h1>
+  <p class="hero-sub">
+    A production-ready REST API with role-based access control, JWT authentication,
+    financial records management, and real-time analytics — built with Node.js, Express &amp; MongoDB.
+  </p>
+  <div class="stack-pills">
+    <span class="pill">Node.js</span>
+    <span class="pill">Express</span>
+    <span class="pill">MongoDB</span>
+    <span class="pill">Mongoose</span>
+    <span class="pill">JWT Auth</span>
+    <span class="pill">bcryptjs</span>
+    <span class="pill">express-rate-limit</span>
+    <span class="pill">Render · Atlas</span>
+  </div>
+</div>
+
+<!-- ── Role Selector ── -->
+<section id="roles-section">
+  <div class="section-label">Interactive Demo</div>
+  <div class="section-title">Choose a Role to Explore</div>
+  <p class="section-sub">Each role has different permissions. Click one to log in and see the API respond live.</p>
+
+  <div class="role-grid">
+    <!-- Admin -->
+    <div class="role-card admin-card" id="card-admin">
+      <div class="role-icon">👑</div>
+      <div class="role-name">Admin</div>
+      <div class="role-email">admin@finance.dev</div>
+      <div class="role-perms">
+        <div class="perm"><span class="check">✓</span> View all records</div>
+        <div class="perm"><span class="check">✓</span> Create &amp; update records</div>
+        <div class="perm"><span class="check">✓</span> Delete records (soft)</div>
+        <div class="perm"><span class="check">✓</span> Manage users</div>
+        <div class="perm"><span class="check">✓</span> Full dashboard access</div>
+      </div>
+      <button class="role-btn" id="btn-admin" onclick="loginAs('admin')">Login as Admin</button>
+    </div>
+    <!-- Analyst -->
+    <div class="role-card analyst-card" id="card-analyst">
+      <div class="role-icon">📊</div>
+      <div class="role-name">Analyst</div>
+      <div class="role-email">analyst@finance.dev</div>
+      <div class="role-perms">
+        <div class="perm"><span class="check">✓</span> View all records</div>
+        <div class="perm"><span class="check">✓</span> Create &amp; update records</div>
+        <div class="perm"><span class="cross">✗</span> Delete records</div>
+        <div class="perm"><span class="cross">✗</span> Manage users</div>
+        <div class="perm"><span class="check">✓</span> Dashboard &amp; trends</div>
+      </div>
+      <button class="role-btn" id="btn-analyst" onclick="loginAs('analyst')">Login as Analyst</button>
+    </div>
+    <!-- Viewer -->
+    <div class="role-card viewer-card" id="card-viewer">
+      <div class="role-icon">👁️</div>
+      <div class="role-name">Viewer</div>
+      <div class="role-email">viewer@finance.dev</div>
+      <div class="role-perms">
+        <div class="perm"><span class="check">✓</span> View all records</div>
+        <div class="perm"><span class="cross">✗</span> Create or update records</div>
+        <div class="perm"><span class="cross">✗</span> Delete records</div>
+        <div class="perm"><span class="cross">✗</span> Manage users</div>
+        <div class="perm"><span class="check">✓</span> Basic dashboard summary</div>
+      </div>
+      <button class="role-btn" id="btn-viewer" onclick="loginAs('viewer')">Login as Viewer</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── API Console ── -->
+<section>
+  <div class="section-label">Live Request Log</div>
+  <div class="section-title">API Console</div>
+  <p class="section-sub">Every API call made by this page is logged here in real-time.</p>
+  <div class="console-wrap">
+    <div class="console-bar">
+      <div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div>
+      <span class="console-title">fintrack-api · live requests</span>
+    </div>
+    <div id="console-log">
+      <div class="log-info">// Waiting for login... Click a role above to start.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats ── -->
+<section id="stats-section">
+  <div class="current-role-banner" id="role-banner">
+    <span id="role-banner-icon"></span>
+    <span>Logged in as <strong id="banner-role-name"></strong> · <span id="banner-email" style="font-family:monospace;font-size:13px;color:var(--muted)"></span></span>
+  </div>
+
+  <div class="section-label">Dashboard Summary</div>
+  <div class="section-title">Financial Overview</div>
+  <p class="section-sub">Live aggregated data from MongoDB — calculated server-side in a single aggregation pipeline.</p>
+
+  <div class="stats-grid">
+    <div class="stat-card income-card">
+      <div class="stat-icon">💰</div>
+      <div class="stat-label">Total Income</div>
+      <div class="stat-value income-val" id="stat-income">—</div>
+    </div>
+    <div class="stat-card expense-card">
+      <div class="stat-icon">💸</div>
+      <div class="stat-label">Total Expenses</div>
+      <div class="stat-value expense-val" id="stat-expense">—</div>
+    </div>
+    <div class="stat-card balance-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-label">Net Balance</div>
+      <div class="stat-value balance-val" id="stat-balance">—</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Records ── -->
+<section id="records-section" style="display:none;">
+  <div class="section-label">Financial Records</div>
+  <div class="section-title">Transactions</div>
+  <p class="section-sub">Paginated, filterable list of all financial entries. Try the filters below.</p>
+
+  <div class="filter-row">
+    <button class="filter-pill active" onclick="filterRecords('all', this)">All</button>
+    <button class="filter-pill" onclick="filterRecords('income', this)">Income</button>
+    <button class="filter-pill" onclick="filterRecords('expense', this)">Expense</button>
+  </div>
+
+  <div class="records-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="records-tbody">
+        <tr><td colspan="5"><div class="empty-state"><div class="big">⏳</div><p>Loading records…</p></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── RBAC Demo ── -->
+<section id="rbac-section">
+  <div class="section-label">Access Control</div>
+  <div class="section-title">Role-Based Permissions</div>
+  <p class="section-sub">Click any action to see it fire against the live API. Watch how different roles get different responses.</p>
+
+  <div class="rbac-grid">
+    <div class="rbac-card">
+      <div class="rbac-card-title">📝 Record Operations</div>
+      <button class="action-btn" onclick="tryAction('create')">
+        <span>POST /api/records · Create record</span>
+        <span class="action-result result-pending" id="res-create">TRY</span>
+      </button>
+      <button class="action-btn" onclick="tryAction('update')">
+        <span>PUT /api/records/:id · Update record</span>
+        <span class="action-result result-pending" id="res-update">TRY</span>
+      </button>
+      <button class="action-btn" onclick="tryAction('delete')">
+        <span>DELETE /api/records/:id · Delete record</span>
+        <span class="action-result result-pending" id="res-delete">TRY</span>
+      </button>
+    </div>
+    <div class="rbac-card">
+      <div class="rbac-card-title">👥 User Management &amp; Analytics</div>
+      <button class="action-btn" onclick="tryAction('users')">
+        <span>GET /api/users · List all users</span>
+        <span class="action-result result-pending" id="res-users">TRY</span>
+      </button>
+      <button class="action-btn" onclick="tryAction('trends')">
+        <span>GET /api/dashboard/trends/monthly</span>
+        <span class="action-result result-pending" id="res-trends">TRY</span>
+      </button>
+      <button class="action-btn" onclick="tryAction('summary')">
+        <span>GET /api/dashboard/summary</span>
+        <span class="action-result result-pending" id="res-summary">TRY</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ── Endpoints Reference ── -->
+<section>
+  <div class="section-label">API Reference</div>
+  <div class="section-title">All Endpoints</div>
+  <p class="section-sub">Complete list of available routes with role requirements.</p>
+
+  <div class="endpoints-grid">
+    <div class="endpoint-card">
+      <span class="method post">POST</span>
+      <div>
+        <div class="ep-path">/api/auth/register</div>
+        <div class="ep-desc">Register a new user</div>
+        <div class="ep-roles"><span class="role-tag tag-admin">public</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method post">POST</span>
+      <div>
+        <div class="ep-path">/api/auth/login</div>
+        <div class="ep-desc">Login, receive JWT token</div>
+        <div class="ep-roles"><span class="role-tag tag-admin">public</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method get">GET</span>
+      <div>
+        <div class="ep-path">/api/auth/me</div>
+        <div class="ep-desc">Get current user profile</div>
+        <div class="ep-roles"><span class="role-tag tag-viewer">all roles</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method get">GET</span>
+      <div>
+        <div class="ep-path">/api/records</div>
+        <div class="ep-desc">List records · ?type= ?search= ?page=</div>
+        <div class="ep-roles"><span class="role-tag tag-viewer">all roles</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method post">POST</span>
+      <div>
+        <div class="ep-path">/api/records</div>
+        <div class="ep-desc">Create financial record</div>
+        <div class="ep-roles">
+          <span class="role-tag tag-analyst">analyst</span>
+          <span class="role-tag tag-admin">admin</span>
+        </div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method put">PUT</span>
+      <div>
+        <div class="ep-path">/api/records/:id</div>
+        <div class="ep-desc">Update a record</div>
+        <div class="ep-roles">
+          <span class="role-tag tag-analyst">analyst</span>
+          <span class="role-tag tag-admin">admin</span>
+        </div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method del">DEL</span>
+      <div>
+        <div class="ep-path">/api/records/:id</div>
+        <div class="ep-desc">Soft delete a record</div>
+        <div class="ep-roles"><span class="role-tag tag-admin">admin</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method get">GET</span>
+      <div>
+        <div class="ep-path">/api/dashboard/summary</div>
+        <div class="ep-desc">Income, expense, balance totals</div>
+        <div class="ep-roles"><span class="role-tag tag-viewer">all roles</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method get">GET</span>
+      <div>
+        <div class="ep-path">/api/dashboard/trends/monthly</div>
+        <div class="ep-desc">Monthly income vs expense trends</div>
+        <div class="ep-roles">
+          <span class="role-tag tag-analyst">analyst</span>
+          <span class="role-tag tag-admin">admin</span>
+        </div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method get">GET</span>
+      <div>
+        <div class="ep-path">/api/users</div>
+        <div class="ep-desc">List all users</div>
+        <div class="ep-roles"><span class="role-tag tag-admin">admin</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method put">PUT</span>
+      <div>
+        <div class="ep-path">/api/users/:id</div>
+        <div class="ep-desc">Update user role or status</div>
+        <div class="ep-roles"><span class="role-tag tag-admin">admin</span></div>
+      </div>
+    </div>
+    <div class="endpoint-card">
+      <span class="method get">GET</span>
+      <div>
+        <div class="ep-path">/health</div>
+        <div class="ep-desc">Server health check</div>
+        <div class="ep-roles"><span class="role-tag tag-viewer">public</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <p>
+    Built by <strong>Siddem Anil Kumar</strong> &nbsp;·&nbsp;
+    <a href="https://github.com/Anil2995/fintrack-api" target="_blank">GitHub Repository</a>
+    &nbsp;·&nbsp; Node.js + Express + MongoDB &nbsp;·&nbsp;
+    Deployed on Render + MongoDB Atlas
+  </p>
+</footer>
+
+<script>
+  // State
+  let token = null;
+  let currentRole = null;
+  let allRecords = [];
+  let firstRecordId = null;
+
+  // Credentials for seeded accounts
+  const creds = {
+    admin:   { email: 'admin@finance.dev',   password: 'admin123',   icon: '👑', color: 'var(--admin)'   },
+    analyst: { email: 'analyst@finance.dev', password: 'analyst123', icon: '📊', color: 'var(--analyst)' },
+    viewer:  { email: 'viewer@finance.dev',  password: 'viewer123',  icon: '👁️', color: 'var(--viewer)'  },
+  };
+
+  // Console logger
+  function log(msg, type = 'info') {
+    const el = document.getElementById('console-log');
+    const line = document.createElement('div');
+    line.className = `log-${type}`;
+    line.textContent = msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // Format currency
+  function fmt(n) {
+    if (n === null || n === undefined || n === '—') return '—';
+    return '₹' + Number(n).toLocaleString('en-IN');
+  }
+
+  // Animate number counter
+  function animateValue(el, target) {
+    let start = 0;
+    const dur = 900;
+    const step = 16;
+    const inc = target / (dur / step);
+    const timer = setInterval(() => {
+      start = Math.min(start + inc, target);
+      el.textContent = fmt(Math.round(start));
+      if (start >= target) clearInterval(timer);
+    }, step);
+  }
+
+  // Main login function
+  async function loginAs(role) {
+    const c = creds[role];
+    const btn = document.getElementById(`btn-${role}`);
+    btn.innerHTML = '<span class="spinner"></span> Logging in…';
+    btn.disabled = true;
+
+    // Clear previous active cards
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+    document.getElementById(`card-${role}`).classList.add('active');
+
+    log(`\n> POST /api/auth/login  (role: ${role})`, 'req');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: c.email, password: c.password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      token = data.token;
+      currentRole = role;
+
+      log(`< ${res.status} OK  |  role: ${data.user.role}  |  token: ${token.slice(0,28)}...`, 'ok');
+
+      // Update banner
+      const banner = document.getElementById('role-banner');
+      banner.classList.add('visible');
+      document.getElementById('role-banner-icon').textContent = c.icon;
+      document.getElementById('banner-role-name').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+      document.getElementById('banner-email').textContent = c.email;
+
+      btn.textContent = `✓ Logged in as ${role}`;
+
+      // Reset other btns
+      ['admin','analyst','viewer'].forEach(r => {
+        if (r !== role) {
+          document.getElementById(`btn-${r}`).textContent = `Login as ${r.charAt(0).toUpperCase()+r.slice(1)}`;
+          document.getElementById(`btn-${r}`).disabled = false;
+        }
+      });
+
+      // Reset RBAC result badges
+      ['create','update','delete','users','trends','summary'].forEach(id => {
+        const el = document.getElementById(`res-${id}`);
+        el.textContent = 'TRY';
+        el.className = 'action-result result-pending';
+      });
+
+      // Load dashboard and records
+      await loadDashboard();
+      await loadRecords('all');
+      showRbac();
+
+    } catch (err) {
+      log(`< ERROR: ${err.message}`, 'err');
+      btn.textContent = `Login as ${role.charAt(0).toUpperCase()+role.slice(1)}`;
+      btn.disabled = false;
+    }
+  }
+
+  async function loadDashboard() {
+    log(`\n> GET /api/dashboard/summary`, 'req');
+    const res = await fetch('/api/dashboard/summary', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await res.json();
+
+    const section = document.getElementById('stats-section');
+    section.classList.add('visible');
+    section.classList.add('fade-in');
+
+    if (res.ok) {
+      log(`< ${res.status} OK  |  income: ${data.summary.totalIncome}  expense: ${data.summary.totalExpense}  balance: ${data.summary.netBalance}`, 'ok');
+      animateValue(document.getElementById('stat-income'),  data.summary.totalIncome);
+      animateValue(document.getElementById('stat-expense'), data.summary.totalExpense);
+      animateValue(document.getElementById('stat-balance'), data.summary.netBalance);
+    } else {
+      log(`< ${res.status}  |  ${data.message}`, 'err');
+      document.getElementById('stat-income').textContent  = '—';
+      document.getElementById('stat-expense').textContent = '—';
+      document.getElementById('stat-balance').textContent = 'No Access';
+    }
+  }
+
+  async function loadRecords(typeFilter) {
+    const rSection = document.getElementById('records-section');
+    rSection.style.display = 'block';
+
+    let url = '/api/records?limit=10';
+    if (typeFilter !== 'all') url += `&type=${typeFilter}`;
+
+    log(`\n> GET ${url}`, 'req');
+    const res = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await res.json();
+
+    const tbody = document.getElementById('records-tbody');
+
+    if (!res.ok) {
+      log(`< ${res.status}  |  ${data.message}`, 'err');
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="big">🔒</div><p>${data.message}</p></div></td></tr>`;
+      return;
+    }
+
+    log(`< ${res.status} OK  |  total: ${data.total}  page: ${data.page}/${data.pages}`, 'ok');
+
+    if (data.records.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="big">📭</div><p>No records found. Run <code>npm run seed</code> to populate test data.</p></div></td></tr>`;
+      return;
+    }
+
+    allRecords = data.records;
+    if (allRecords.length > 0) firstRecordId = allRecords[0]._id;
+
+    tbody.innerHTML = data.records.map(r => {
+      const isIncome = r.type === 'income';
+      const date = new Date(r.date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+      return `
+        <tr class="fade-in">
+          <td><span class="badge-type ${isIncome ? 'badge-income' : 'badge-expense'}">${isIncome ? '↑' : '↓'} ${r.type}</span></td>
+          <td>${r.category}</td>
+          <td class="td-amount ${isIncome ? 'inc' : 'exp'}">${isIncome ? '+' : '-'}${fmt(r.amount)}</td>
+          <td class="td-muted">${date}</td>
+          <td class="td-muted">${r.notes || '—'}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterRecords(type, btn) {
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    if (token) loadRecords(type);
+  }
+
+  function showRbac() {
+    const s = document.getElementById('rbac-section');
+    s.classList.add('visible');
+    s.style.display = 'block';
+    s.classList.add('fade-in');
+  }
+
+  // RBAC action tests
+  async function tryAction(action) {
+    if (!token) { log('\n> Please log in first.', 'err'); return; }
+
+    const btn = document.getElementById(`res-${action}`);
+    btn.textContent = '...';
+    btn.className = 'action-result result-pending';
+
+    let method, url, body;
+
+    switch(action) {
+      case 'create':
+        method = 'POST'; url = '/api/records';
+        body = { amount: 1000, type: 'income', category: 'Demo Test', notes: 'RBAC check' };
+        break;
+      case 'update':
+        if (!firstRecordId) { btn.textContent = 'No record'; return; }
+        method = 'PUT'; url = `/api/records/${firstRecordId}`;
+        body = { amount: 9999, type: 'income', category: 'Updated', notes: 'RBAC update test' };
+        break;
+      case 'delete':
+        if (!firstRecordId) { btn.textContent = 'No record'; return; }
+        method = 'DELETE'; url = `/api/records/${firstRecordId}`;
+        break;
+      case 'users':
+        method = 'GET'; url = '/api/users'; break;
+      case 'trends':
+        method = 'GET'; url = '/api/dashboard/trends/monthly'; break;
+      case 'summary':
+        method = 'GET'; url = '/api/dashboard/summary'; break;
+    }
+
+    log(`\n> ${method} ${url}  (as ${currentRole})`, 'req');
+
+    const opts = { method, headers: { Authorization: 'Bearer ' + token } };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+
+    const res = await fetch(url, opts);
+    const data = await res.json();
+
+    if (res.ok) {
+      log(`< ${res.status} OK  ·  access granted`, 'ok');
+      btn.textContent = `${res.status} OK`;
+      btn.className = 'action-result result-ok';
+      // reload records after create/update
+      if (action === 'create' || action === 'update') await loadRecords('all');
+      if (action === 'delete') { firstRecordId = null; await loadRecords('all'); }
+    } else {
+      log(`< ${res.status} ${data.message}`, 'err');
+      btn.textContent = `${res.status} ${res.status === 403 ? 'Forbidden' : 'Error'}`;
+      btn.className = 'action-result result-403';
+    }
+  }
+</script>
+
+</body>
+</html>
