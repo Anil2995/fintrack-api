@@ -3,937 +3,612 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FinTrack API — Finance Dashboard Backend</title>
-  <meta name="description" content="Role-based finance dashboard backend API built with Node.js, Express and MongoDB. Live interactive demo." />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <title>FinTrack API Dashboard</title>
+  <meta name="description" content="Finance Dashboard Backend built with Node.js, Express, and MongoDB." />
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:        #07090f;
-      --surface:   #0d1117;
-      --card:      #161b27;
-      --border:    #21262d;
-      --accent:    #00d4aa;
-      --accent2:   #7c6af7;
-      --income:    #23d18b;
-      --expense:   #f85149;
-      --text:      #e6edf3;
-      --muted:     #8b949e;
-      --admin:     #f0883e;
-      --analyst:   #7c6af7;
-      --viewer:    #58a6ff;
-    }
-
-    html { scroll-behavior: smooth; }
-
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
+      background-color: #f8f9fa;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      letter-spacing: -0.5px;
     }
 
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* ── Nav ── */
-    nav {
-      position: sticky; top: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 32px;
-      background: rgba(7,9,15,0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-logo { display: flex; align-items: center; gap: 10px; }
-    .nav-logo-icon {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
-    }
-    .nav-logo-text { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
-    .nav-logo-text span { color: var(--accent); }
-    .nav-right { display: flex; align-items: center; gap: 12px; }
-    .badge-live {
-      display: flex; align-items: center; gap: 6px;
-      padding: 4px 10px; border-radius: 20px;
-      background: rgba(35,209,139,0.12); border: 1px solid rgba(35,209,139,0.25);
-      font-size: 12px; font-weight: 500; color: var(--income);
-    }
-    .badge-live::before {
-      content: ''; width: 7px; height: 7px; border-radius: 50%;
-      background: var(--income);
-      animation: pulse-dot 2s infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    .btn-ghost {
-      display: flex; align-items: center; gap: 6px;
-      padding: 6px 14px; border-radius: 8px;
-      border: 1px solid var(--border);
-      background: transparent; color: var(--muted);
-      font-size: 13px; font-family: inherit; cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ── Hero ── */
-    .hero {
-      text-align: center; padding: 80px 24px 60px;
-      position: relative; overflow: hidden;
-    }
-    .hero::before {
-      content: '';
-      position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
-      width: 600px; height: 400px; border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(0,212,170,0.08) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero-tag {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 14px; border-radius: 20px; margin-bottom: 24px;
-      background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.2);
-      font-size: 12px; font-weight: 500; color: var(--accent2);
-      letter-spacing: 0.5px; text-transform: uppercase;
-    }
-    .hero h1 {
-      font-size: clamp(32px, 5vw, 56px);
-      font-weight: 900; letter-spacing: -1.5px; line-height: 1.1;
-      margin-bottom: 18px;
-    }
-    .hero h1 .grad {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      font-size: 17px; color: var(--muted); max-width: 540px;
-      margin: 0 auto 36px; line-height: 1.65;
-    }
-    .stack-pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 40px; }
-    .pill {
-      padding: 5px 12px; border-radius: 20px;
-      background: var(--card); border: 1px solid var(--border);
-      font-size: 12px; font-weight: 500; color: var(--muted);
+    .hero-section {
+      background-color: #fff;
+      border-bottom: 1px solid #e9ecef;
+      padding: 60px 0;
     }
 
-    /* ── Section ── */
-    section { max-width: 1100px; margin: 0 auto; padding: 0 24px 72px; }
-    .section-label {
-      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
-      text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+    .card {
+      border: 1px solid #e9ecef;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .section-title {
-      font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
-      margin-bottom: 6px;
+    
+    .role-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px rgba(0,0,0,0.05);
+      border-color: #dee2e6;
     }
-    .section-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+    
+    .role-card.active-role {
+      border: 2px solid #0d6efd;
+      box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+    }
 
-    /* ── Role Cards ── */
-    .role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-    .role-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 24px;
-      cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
     }
-    .role-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: transparent; transition: background 0.25s;
-    }
-    .role-card.admin-card { --rc: var(--admin); }
-    .role-card.analyst-card { --rc: var(--analyst); }
-    .role-card.viewer-card { --rc: var(--viewer); }
 
-    .role-card:hover { border-color: var(--rc); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
-    .role-card:hover::before { background: var(--rc); }
-    .role-card.active { border-color: var(--rc); box-shadow: 0 0 0 1px var(--rc), 0 12px 40px rgba(0,0,0,0.35); }
-    .role-card.active::before { background: var(--rc); }
+    .icon-admin { background-color: #e0f2fe; color: #0284c7; }
+    .icon-analyst { background-color: #f3e8ff; color: #9333ea; }
+    .icon-viewer { background-color: #f1f5f9; color: #475569; }
 
-    .role-icon {
-      width: 44px; height: 44px; border-radius: 12px; margin-bottom: 14px;
-      display: flex; align-items: center; justify-content: center; font-size: 20px;
-      background: rgba(255,255,255,0.05);
+    .nav-pills .nav-link {
+      color: #495057;
+      border-radius: 50rem;
+      padding: 0.5rem 1.25rem;
+      font-weight: 500;
     }
-    .role-name { font-weight: 700; font-size: 17px; margin-bottom: 6px; color: var(--rc); }
-    .role-email { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 14px; }
-    .role-perms { display: flex; flex-direction: column; gap: 6px; }
-    .perm {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--muted);
+    
+    .nav-pills .nav-link.active {
+      background-color: #212529;
+      color: #fff;
     }
-    .perm .check { color: var(--income); font-size: 12px; }
-    .perm .cross { color: var(--expense); font-size: 12px; }
-    .role-btn {
-      margin-top: 20px; width: 100%;
-      padding: 10px; border-radius: 10px;
-      border: 1px solid var(--rc);
-      background: rgba(255,255,255,0.04);
-      color: var(--rc); font-family: inherit;
-      font-weight: 600; font-size: 14px;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .role-btn:hover { background: var(--rc); color: #000; }
-    .role-btn.loading { opacity: 0.6; cursor: not-allowed; }
 
-    /* ── Stats ── */
-    #stats-section { display: none; }
-    #stats-section.visible { display: block; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 24px;
-      position: relative; overflow: hidden;
+    .table th {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6c757d;
+      font-weight: 600;
     }
-    .stat-card::after {
-      content: ''; position: absolute;
-      right: -20px; bottom: -20px;
-      width: 80px; height: 80px; border-radius: 50%;
-      opacity: 0.06;
-    }
-    .stat-card.income-card::after { background: var(--income); }
-    .stat-card.expense-card::after { background: var(--expense); }
-    .stat-card.balance-card::after { background: var(--accent2); }
-    .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-value { font-size: 30px; font-weight: 800; letter-spacing: -1px; }
-    .stat-value.income-val { color: var(--income); }
-    .stat-value.expense-val { color: var(--expense); }
-    .stat-value.balance-val { color: var(--accent); }
-    .stat-icon { font-size: 24px; margin-bottom: 12px; }
 
-    /* ── Records ── */
-    .records-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: gap; gap: 12px; }
-    .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-    .filter-pill {
-      padding: 6px 14px; border-radius: 20px;
-      background: var(--card); border: 1px solid var(--border);
-      font-size: 12px; font-weight: 500; color: var(--muted);
-      cursor: pointer; transition: all 0.2s; font-family: inherit;
-    }
-    .filter-pill:hover, .filter-pill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,170,0.08); }
-    .records-table-wrap {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
-    }
-    table { width: 100%; border-collapse: collapse; }
-    thead th {
-      padding: 12px 16px; text-align: left;
-      font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
-      text-transform: uppercase; color: var(--muted);
-      border-bottom: 1px solid var(--border);
-      background: rgba(255,255,255,0.02);
-    }
-    tbody tr { border-bottom: 1px solid rgba(33,38,45,0.6); transition: background 0.15s; }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: rgba(255,255,255,0.02); }
-    tbody td { padding: 13px 16px; font-size: 13px; }
-    .badge-type {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
-    }
-    .badge-income { background: rgba(35,209,139,0.12); color: var(--income); }
-    .badge-expense { background: rgba(248,81,73,0.12); color: var(--expense); }
-    .td-amount { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-    .td-amount.inc { color: var(--income); }
-    .td-amount.exp { color: var(--expense); }
-    .td-muted { color: var(--muted); font-size: 12px; }
-
-    /* ── RBAC Demo ── */
-    #rbac-section { display: none; }
-    #rbac-section.visible { display: block; }
-    .rbac-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-    .rbac-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px;
-    }
-    .rbac-card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--muted); }
-    .action-btn {
-      display: flex; align-items: center; justify-content: space-between;
-      width: 100%; padding: 10px 14px; border-radius: 10px; margin-bottom: 8px;
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.2s;
-      color: var(--text);
-    }
-    .action-btn:hover { border-color: var(--accent); }
-    .action-btn:last-child { margin-bottom: 0; }
-    .action-result {
-      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
-    }
-    .result-ok { background: rgba(35,209,139,0.15); color: var(--income); }
-    .result-403 { background: rgba(248,81,73,0.15); color: var(--expense); }
-    .result-pending { background: rgba(139,148,158,0.15); color: var(--muted); }
-
-    /* ── API Console ── */
-    .console-wrap {
-      background: #0a0c12; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
-    }
-    .console-bar {
-      padding: 10px 16px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,0.02);
-    }
-    .dot-r { width: 10px; height: 10px; border-radius: 50%; background: #f85149; }
-    .dot-y { width: 10px; height: 10px; border-radius: 50%; background: #e3b341; }
-    .dot-g { width: 10px; height: 10px; border-radius: 50%; background: #23d18b; }
-    .console-title { font-size: 12px; color: var(--muted); margin-left: 8px; }
     #console-log {
-      padding: 16px; min-height: 180px; max-height: 320px; overflow-y: auto;
-      font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7;
-    }
-    .log-req  { color: #58a6ff; }
-    .log-ok   { color: #23d18b; }
-    .log-err  { color: #f85149; }
-    .log-info { color: #8b949e; }
-    .log-val  { color: #e3b341; }
-
-    /* ── Endpoints ── */
-    .endpoints-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
-    .endpoint-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px;
-    }
-    .method {
-      padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
-      font-family: 'JetBrains Mono', monospace; min-width: 44px; text-align: center;
-    }
-    .get  { background: rgba(35,209,139,0.12); color: var(--income); }
-    .post { background: rgba(88,166,255,0.12); color: var(--viewer); }
-    .put  { background: rgba(227,179,65,0.12);  color: #e3b341; }
-    .del  { background: rgba(248,81,73,0.12);   color: var(--expense); }
-    .ep-path { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); }
-    .ep-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .ep-roles { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
-    .role-tag {
-      padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
-    }
-    .tag-admin   { background: rgba(240,136,62,0.15);  color: var(--admin); }
-    .tag-analyst { background: rgba(124,106,247,0.15); color: var(--analyst); }
-    .tag-viewer  { background: rgba(88,166,255,0.15);  color: var(--viewer); }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center; padding: 40px 24px;
-      border-top: 1px solid var(--border);
-      color: var(--muted); font-size: 13px;
-    }
-    footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-
-    /* ── Empty state ── */
-    .empty-state {
-      text-align: center; padding: 48px 24px; color: var(--muted);
-    }
-    .empty-state .big { font-size: 32px; margin-bottom: 10px; }
-    .empty-state p { font-size: 14px; }
-
-    /* ── Responsive ── */
-    @media (max-width: 640px) {
-      nav { padding: 12px 16px; }
-      .hero { padding: 48px 16px 40px; }
-      section { padding: 0 16px 48px; }
+      background-color: #212529;
+      color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 0 0 8px 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      height: 250px;
+      overflow-y: auto;
     }
 
-    /* ── Animations ── */
-    .fade-in { animation: fadeIn 0.4s ease forwards; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .console-header {
+      background-color: #343a40;
+      color: #adb5bd;
+      padding: 8px 16px;
+      border-radius: 8px 8px 0 0;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .spinner {
-      display: inline-block; width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,0.2);
-      border-top-color: var(--accent);
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .current-role-banner {
-      display: none; align-items: center; gap: 10px;
-      padding: 12px 20px; border-radius: 12px; margin-bottom: 28px;
-      background: var(--card); border: 1px solid var(--border);
-      font-size: 14px;
+    .mac-btn {
+      width: 10px; height: 10px; border-radius: 50%; display: inline-block;
     }
-    .current-role-banner.visible { display: flex; }
+
+    .log-req { color: #6ea8fe; }
+    .log-ok { color: #75b798; }
+    .log-err { color: #ea868f; }
+    .log-info { color: #adb5bd; }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+    
+    .badge-endpoint {
+      font-family: monospace;
+      font-size: 13px;
+      padding: 6px 10px;
+    }
+
+    .section-title {
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 24px;
+      color: #212529;
+    }
+
+    /* Utiltiy classes */
+    .text-income { color: #198754; font-weight: 600; }
+    .text-expense { color: #dc3545; font-weight: 600; }
+    .bg-income-subtle { background-color: #d1e7dd; color: #0f5132; }
+    .bg-expense-subtle { background-color: #f8d7da; color: #842029; }
   </style>
 </head>
 <body>
 
-<!-- ── Nav ── -->
-<nav>
-  <div class="nav-logo">
-    <div class="nav-logo-icon">₹</div>
-    <span class="nav-logo-text">Fin<span>Track</span> API</span>
-  </div>
-  <div class="nav-right">
-    <div class="badge-live">Live</div>
-    <a class="btn-ghost" href="https://github.com/Anil2995/fintrack-api" target="_blank">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
-    </a>
-  </div>
-</nav>
-
-<!-- ── Hero ── -->
-<div class="hero">
-  <div class="hero-tag">🚀 Backend Intern Assignment · Zorvyn FinTech</div>
-  <h1>Finance Dashboard<br><span class="grad">Backend API</span></h1>
-  <p class="hero-sub">
-    A production-ready REST API with role-based access control, JWT authentication,
-    financial records management, and real-time analytics — built with Node.js, Express &amp; MongoDB.
-  </p>
-  <div class="stack-pills">
-    <span class="pill">Node.js</span>
-    <span class="pill">Express</span>
-    <span class="pill">MongoDB</span>
-    <span class="pill">Mongoose</span>
-    <span class="pill">JWT Auth</span>
-    <span class="pill">bcryptjs</span>
-    <span class="pill">express-rate-limit</span>
-    <span class="pill">Render · Atlas</span>
-  </div>
-</div>
-
-<!-- ── Role Selector ── -->
-<section id="roles-section">
-  <div class="section-label">Interactive Demo</div>
-  <div class="section-title">Choose a Role to Explore</div>
-  <p class="section-sub">Each role has different permissions. Click one to log in and see the API respond live.</p>
-
-  <div class="role-grid">
-    <!-- Admin -->
-    <div class="role-card admin-card" id="card-admin">
-      <div class="role-icon">👑</div>
-      <div class="role-name">Admin</div>
-      <div class="role-email">admin@finance.dev</div>
-      <div class="role-perms">
-        <div class="perm"><span class="check">✓</span> View all records</div>
-        <div class="perm"><span class="check">✓</span> Create &amp; update records</div>
-        <div class="perm"><span class="check">✓</span> Delete records (soft)</div>
-        <div class="perm"><span class="check">✓</span> Manage users</div>
-        <div class="perm"><span class="check">✓</span> Full dashboard access</div>
-      </div>
-      <button class="role-btn" id="btn-admin" onclick="loginAs('admin')">Login as Admin</button>
-    </div>
-    <!-- Analyst -->
-    <div class="role-card analyst-card" id="card-analyst">
-      <div class="role-icon">📊</div>
-      <div class="role-name">Analyst</div>
-      <div class="role-email">analyst@finance.dev</div>
-      <div class="role-perms">
-        <div class="perm"><span class="check">✓</span> View all records</div>
-        <div class="perm"><span class="check">✓</span> Create &amp; update records</div>
-        <div class="perm"><span class="cross">✗</span> Delete records</div>
-        <div class="perm"><span class="cross">✗</span> Manage users</div>
-        <div class="perm"><span class="check">✓</span> Dashboard &amp; trends</div>
-      </div>
-      <button class="role-btn" id="btn-analyst" onclick="loginAs('analyst')">Login as Analyst</button>
-    </div>
-    <!-- Viewer -->
-    <div class="role-card viewer-card" id="card-viewer">
-      <div class="role-icon">👁️</div>
-      <div class="role-name">Viewer</div>
-      <div class="role-email">viewer@finance.dev</div>
-      <div class="role-perms">
-        <div class="perm"><span class="check">✓</span> View all records</div>
-        <div class="perm"><span class="cross">✗</span> Create or update records</div>
-        <div class="perm"><span class="cross">✗</span> Delete records</div>
-        <div class="perm"><span class="cross">✗</span> Manage users</div>
-        <div class="perm"><span class="check">✓</span> Basic dashboard summary</div>
-      </div>
-      <button class="role-btn" id="btn-viewer" onclick="loginAs('viewer')">Login as Viewer</button>
-    </div>
-  </div>
-</section>
-
-<!-- ── API Console ── -->
-<section>
-  <div class="section-label">Live Request Log</div>
-  <div class="section-title">API Console</div>
-  <p class="section-sub">Every API call made by this page is logged here in real-time.</p>
-  <div class="console-wrap">
-    <div class="console-bar">
-      <div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div>
-      <span class="console-title">fintrack-api · live requests</span>
-    </div>
-    <div id="console-log">
-      <div class="log-info">// Waiting for login... Click a role above to start.</div>
-    </div>
-  </div>
-</section>
-
-<!-- ── Stats ── -->
-<section id="stats-section">
-  <div class="current-role-banner" id="role-banner">
-    <span id="role-banner-icon"></span>
-    <span>Logged in as <strong id="banner-role-name"></strong> · <span id="banner-email" style="font-family:monospace;font-size:13px;color:var(--muted)"></span></span>
-  </div>
-
-  <div class="section-label">Dashboard Summary</div>
-  <div class="section-title">Financial Overview</div>
-  <p class="section-sub">Live aggregated data from MongoDB — calculated server-side in a single aggregation pipeline.</p>
-
-  <div class="stats-grid">
-    <div class="stat-card income-card">
-      <div class="stat-icon">💰</div>
-      <div class="stat-label">Total Income</div>
-      <div class="stat-value income-val" id="stat-income">—</div>
-    </div>
-    <div class="stat-card expense-card">
-      <div class="stat-icon">💸</div>
-      <div class="stat-label">Total Expenses</div>
-      <div class="stat-value expense-val" id="stat-expense">—</div>
-    </div>
-    <div class="stat-card balance-card">
-      <div class="stat-icon">📊</div>
-      <div class="stat-label">Net Balance</div>
-      <div class="stat-value balance-val" id="stat-balance">—</div>
-    </div>
-  </div>
-</section>
-
-<!-- ── Records ── -->
-<section id="records-section" style="display:none;">
-  <div class="section-label">Financial Records</div>
-  <div class="section-title">Transactions</div>
-  <p class="section-sub">Paginated, filterable list of all financial entries. Try the filters below.</p>
-
-  <div class="filter-row">
-    <button class="filter-pill active" onclick="filterRecords('all', this)">All</button>
-    <button class="filter-pill" onclick="filterRecords('income', this)">Income</button>
-    <button class="filter-pill" onclick="filterRecords('expense', this)">Expense</button>
-  </div>
-
-  <div class="records-table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Category</th>
-          <th>Amount</th>
-          <th>Date</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody id="records-tbody">
-        <tr><td colspan="5"><div class="empty-state"><div class="big">⏳</div><p>Loading records…</p></div></td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ── RBAC Demo ── -->
-<section id="rbac-section">
-  <div class="section-label">Access Control</div>
-  <div class="section-title">Role-Based Permissions</div>
-  <p class="section-sub">Click any action to see it fire against the live API. Watch how different roles get different responses.</p>
-
-  <div class="rbac-grid">
-    <div class="rbac-card">
-      <div class="rbac-card-title">📝 Record Operations</div>
-      <button class="action-btn" onclick="tryAction('create')">
-        <span>POST /api/records · Create record</span>
-        <span class="action-result result-pending" id="res-create">TRY</span>
-      </button>
-      <button class="action-btn" onclick="tryAction('update')">
-        <span>PUT /api/records/:id · Update record</span>
-        <span class="action-result result-pending" id="res-update">TRY</span>
-      </button>
-      <button class="action-btn" onclick="tryAction('delete')">
-        <span>DELETE /api/records/:id · Delete record</span>
-        <span class="action-result result-pending" id="res-delete">TRY</span>
-      </button>
-    </div>
-    <div class="rbac-card">
-      <div class="rbac-card-title">👥 User Management &amp; Analytics</div>
-      <button class="action-btn" onclick="tryAction('users')">
-        <span>GET /api/users · List all users</span>
-        <span class="action-result result-pending" id="res-users">TRY</span>
-      </button>
-      <button class="action-btn" onclick="tryAction('trends')">
-        <span>GET /api/dashboard/trends/monthly</span>
-        <span class="action-result result-pending" id="res-trends">TRY</span>
-      </button>
-      <button class="action-btn" onclick="tryAction('summary')">
-        <span>GET /api/dashboard/summary</span>
-        <span class="action-result result-pending" id="res-summary">TRY</span>
-      </button>
-    </div>
-  </div>
-</section>
-
-<!-- ── Endpoints Reference ── -->
-<section>
-  <div class="section-label">API Reference</div>
-  <div class="section-title">All Endpoints</div>
-  <p class="section-sub">Complete list of available routes with role requirements.</p>
-
-  <div class="endpoints-grid">
-    <div class="endpoint-card">
-      <span class="method post">POST</span>
-      <div>
-        <div class="ep-path">/api/auth/register</div>
-        <div class="ep-desc">Register a new user</div>
-        <div class="ep-roles"><span class="role-tag tag-admin">public</span></div>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-wallet2 me-2 text-primary"></i>FinTrack API
+      </a>
+      <div class="d-flex align-items-center">
+        <span class="badge bg-success rounded-pill me-3 d-flex align-items-center">
+          <span class="spinner-grow spinner-grow-sm me-2" style="width: 8px; height: 8px;" aria-hidden="true"></span>Live
+        </span>
+        <a href="https://github.com/Anil2995/fintrack-api" class="btn btn-outline-light btn-sm" target="_blank">
+          <i class="bi bi-github me-1"></i> GitHub
+        </a>
       </div>
     </div>
-    <div class="endpoint-card">
-      <span class="method post">POST</span>
-      <div>
-        <div class="ep-path">/api/auth/login</div>
-        <div class="ep-desc">Login, receive JWT token</div>
-        <div class="ep-roles"><span class="role-tag tag-admin">public</span></div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero-section text-center">
+    <div class="container">
+      <div class="d-inline-flex align-items-center px-3 py-1 bg-primary bg-opacity-10 text-primary rounded-pill mb-3 fw-semibold small">
+        <i class="bi bi-rocket-takeoff me-2"></i> Zorvyn FinTech Backend Assessment
+      </div>
+      <h1 class="display-4 fw-bold mb-3 text-dark">Finance Dashboard API</h1>
+      <p class="lead text-secondary mx-auto mb-4" style="max-width: 700px;">
+        A production-ready RESTful backend demonstrating user authentication, Role-Based Access Control (RBAC), and aggregated financial analytics.
+      </p>
+      
+      <div class="d-flex flex-wrap justify-content-center gap-2 mb-2">
+        <span class="badge bg-light text-dark border border-secondary-subtle px-3 py-2">Node.js</span>
+        <span class="badge bg-light text-dark border border-secondary-subtle px-3 py-2">Express</span>
+        <span class="badge bg-light text-dark border border-secondary-subtle px-3 py-2">MongoDB</span>
+        <span class="badge bg-light text-dark border border-secondary-subtle px-3 py-2">JWT & bcrypt</span>
       </div>
     </div>
-    <div class="endpoint-card">
-      <span class="method get">GET</span>
-      <div>
-        <div class="ep-path">/api/auth/me</div>
-        <div class="ep-desc">Get current user profile</div>
-        <div class="ep-roles"><span class="role-tag tag-viewer">all roles</span></div>
-      </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method get">GET</span>
-      <div>
-        <div class="ep-path">/api/records</div>
-        <div class="ep-desc">List records · ?type= ?search= ?page=</div>
-        <div class="ep-roles"><span class="role-tag tag-viewer">all roles</span></div>
-      </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method post">POST</span>
-      <div>
-        <div class="ep-path">/api/records</div>
-        <div class="ep-desc">Create financial record</div>
-        <div class="ep-roles">
-          <span class="role-tag tag-analyst">analyst</span>
-          <span class="role-tag tag-admin">admin</span>
+  </header>
+
+  <main class="container py-5">
+    
+    <!-- Role Selection -->
+    <section class="mb-5">
+      <h3 class="section-title">Interactive Live Demo</h3>
+      <p class="text-secondary mb-4">Select a role below to authenticate via the Live API. Watch the network requests in the console below.</p>
+      
+      <div class="row g-4">
+        <!-- Admin Role -->
+        <div class="col-md-4">
+          <div class="card h-100 role-card" id="card-admin" onclick="loginAs('admin')">
+            <div class="card-body pb-0">
+              <div class="icon-box icon-admin"><i class="bi bi-shield-lock-fill"></i></div>
+              <h5 class="card-title fw-bold">Administrator</h5>
+              <p class="text-muted small font-monospace mb-3">admin@finance.dev</p>
+              <ul class="list-unstyled small text-secondary">
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Full CRUD on all records</li>
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Access aggregated data</li>
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Manage user roles & status</li>
+              </ul>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-3 pb-4 px-4">
+              <button class="btn btn-outline-primary w-100" id="btn-admin">Authenticate as Admin</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analyst Role -->
+        <div class="col-md-4">
+          <div class="card h-100 role-card" id="card-analyst" onclick="loginAs('analyst')">
+            <div class="card-body pb-0">
+              <div class="icon-box icon-analyst"><i class="bi bi-graph-up"></i></div>
+              <h5 class="card-title fw-bold">Analyst</h5>
+              <p class="text-muted small font-monospace mb-3">analyst@finance.dev</p>
+              <ul class="list-unstyled small text-secondary">
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Read & Write records</li>
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Access trend analysis</li>
+                <li class="mb-1"><i class="bi bi-x-circle-fill text-danger me-2"></i>Cannot delete records</li>
+                <li class="mb-1"><i class="bi bi-x-circle-fill text-danger me-2"></i>Cannot manage users</li>
+              </ul>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-3 pb-4 px-4">
+              <button class="btn btn-outline-primary w-100" id="btn-analyst">Authenticate as Analyst</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Viewer Role -->
+        <div class="col-md-4">
+          <div class="card h-100 role-card" id="card-viewer" onclick="loginAs('viewer')">
+            <div class="card-body pb-0">
+              <div class="icon-box icon-viewer"><i class="bi bi-eye-fill"></i></div>
+              <h5 class="card-title fw-bold">Viewer</h5>
+              <p class="text-muted small font-monospace mb-3">viewer@finance.dev</p>
+              <ul class="list-unstyled small text-secondary">
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>View summary dashboard</li>
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Read own records</li>
+                <li class="mb-1"><i class="bi bi-x-circle-fill text-danger me-2"></i>Cannot create/edit records</li>
+                <li class="mb-1"><i class="bi bi-x-circle-fill text-danger me-2"></i>No advanced analytics</li>
+              </ul>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-3 pb-4 px-4">
+              <button class="btn btn-outline-primary w-100" id="btn-viewer">Authenticate as Viewer</button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method put">PUT</span>
-      <div>
-        <div class="ep-path">/api/records/:id</div>
-        <div class="ep-desc">Update a record</div>
-        <div class="ep-roles">
-          <span class="role-tag tag-analyst">analyst</span>
-          <span class="role-tag tag-admin">admin</span>
+    </section>
+
+    <!-- Network Console -->
+    <section class="mb-5">
+      <div class="shadow-sm rounded-3">
+        <div class="console-header">
+          <span class="mac-btn bg-danger"></span>
+          <span class="mac-btn bg-warning"></span>
+          <span class="mac-btn bg-success"></span>
+          <span class="ms-2 font-monospace">API Network Activity Monitor</span>
+        </div>
+        <div id="console-log">
+          <div class="log-info">// Awaiting connection... Please authenticate using a role above.</div>
         </div>
       </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method del">DEL</span>
-      <div>
-        <div class="ep-path">/api/records/:id</div>
-        <div class="ep-desc">Soft delete a record</div>
-        <div class="ep-roles"><span class="role-tag tag-admin">admin</span></div>
-      </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method get">GET</span>
-      <div>
-        <div class="ep-path">/api/dashboard/summary</div>
-        <div class="ep-desc">Income, expense, balance totals</div>
-        <div class="ep-roles"><span class="role-tag tag-viewer">all roles</span></div>
-      </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method get">GET</span>
-      <div>
-        <div class="ep-path">/api/dashboard/trends/monthly</div>
-        <div class="ep-desc">Monthly income vs expense trends</div>
-        <div class="ep-roles">
-          <span class="role-tag tag-analyst">analyst</span>
-          <span class="role-tag tag-admin">admin</span>
+    </section>
+
+    <!-- Interactive Dashboard UI (Hidden until login) -->
+    <div id="app-dashboard" style="display: none;">
+      
+      <!-- Current Session Info -->
+      <div class="alert alert-secondary border-0 d-flex align-items-center mb-5" role="alert">
+        <i class="bi bi-person-circle fs-4 me-3"></i>
+        <div>
+          <div class="mb-0 fw-semibold">Authenticated Session Active</div>
+          <div class="small text-muted font-monospace"><span id="session-email"></span> | Role: <span id="session-role" class="badge bg-secondary ms-1"></span></div>
         </div>
       </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method get">GET</span>
-      <div>
-        <div class="ep-path">/api/users</div>
-        <div class="ep-desc">List all users</div>
-        <div class="ep-roles"><span class="role-tag tag-admin">admin</span></div>
+
+      <!-- Financial Summary Cards -->
+      <h4 class="section-title mb-3">Portfolio Overview</h4>
+      <div class="row g-4 mb-5">
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+              <div class="text-secondary small text-uppercase fw-bold mb-2">Net Balance</div>
+              <div class="stat-value text-primary" id="stat-balance">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+              <div class="text-secondary small text-uppercase fw-bold mb-2">Total Income</div>
+              <div class="stat-value text-success" id="stat-income">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+              <div class="text-secondary small text-uppercase fw-bold mb-2">Total Expenses</div>
+              <div class="stat-value text-danger" id="stat-expense">—</div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="endpoint-card">
-      <span class="method put">PUT</span>
-      <div>
-        <div class="ep-path">/api/users/:id</div>
-        <div class="ep-desc">Update user role or status</div>
-        <div class="ep-roles"><span class="role-tag tag-admin">admin</span></div>
+
+      <!-- Action Panel & Records Table -->
+      <h4 class="section-title mb-3">Transaction Records</h4>
+      
+      <div class="card border-0 shadow-sm mb-5">
+        <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <ul class="nav nav-pills" id="record-filters">
+            <li class="nav-item">
+              <button class="nav-link active" onclick="filterRecords('all', this)">All</button>
+            </li>
+            <li class="nav-item ms-1">
+              <button class="nav-link" onclick="filterRecords('income', this)">Income</button>
+            </li>
+            <li class="nav-item ms-1">
+              <button class="nav-link" onclick="filterRecords('expense', this)">Expense</button>
+            </li>
+          </ul>
+          
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" onclick="tryAction('summary')">
+              <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+            </button>
+            <button class="btn btn-primary" onclick="tryAction('create')">
+              <i class="bi bi-plus-lg me-1"></i> New Test Record
+            </button>
+          </div>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Transaction</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th class="pe-4 text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="records-tbody">
+              <tr>
+                <td colspan="5" class="text-center py-5 text-muted">
+                  <div class="spinner-border spinner-border-sm me-2" role="status"></div> Loading records...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
     </div>
-    <div class="endpoint-card">
-      <span class="method get">GET</span>
-      <div>
-        <div class="ep-path">/health</div>
-        <div class="ep-desc">Server health check</div>
-        <div class="ep-roles"><span class="role-tag tag-viewer">public</span></div>
+
+    <!-- API Reference Guide -->
+    <section class="mt-5 pt-4 border-top">
+      <h3 class="section-title">API Reference Guide</h3>
+      <p class="text-secondary mb-4">Endpoints available in this implementation, protected by RBAC middleware.</p>
+      
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="fw-bold mb-3 border-bottom pb-2">Authentication & Users</h6>
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-primary me-2" style="width: 50px;">POST</span>
+                <span class="font-monospace text-secondary small">/api/auth/register</span>
+              </div>
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-primary me-2" style="width: 50px;">POST</span>
+                <span class="font-monospace text-secondary small">/api/auth/login</span>
+              </div>
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-info text-dark me-2" style="width: 50px;">GET</span>
+                <span class="font-monospace text-secondary small">/api/users (Admin ONLY)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="fw-bold mb-3 border-bottom pb-2">Financial Records & Analytics</h6>
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-info text-dark me-2" style="width: 50px;">GET</span>
+                <span class="font-monospace text-secondary small">/api/records?search=&type=</span>
+              </div>
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-primary me-2" style="width: 50px;">POST</span>
+                <span class="font-monospace text-secondary small">/api/records (Admin/Analyst)</span>
+              </div>
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-danger me-2" style="width: 50px;">DEL</span>
+                <span class="font-monospace text-secondary small">/api/records/:id (Admin ONLY)</span>
+              </div>
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-info text-dark me-2" style="width: 50px;">GET</span>
+                <span class="font-monospace text-secondary small">/api/dashboard/summary</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-white border-top py-4 mt-5">
+    <div class="container text-center">
+      <p class="text-secondary small mb-0">Project Submission by <strong>Siddem Anil Kumar</strong> for <strong>Zorvyn</strong> Backend Intern role.</p>
     </div>
-  </div>
-</section>
+  </footer>
 
-<!-- ── Footer ── -->
-<footer>
-  <p>
-    Built by <strong>Siddem Anil Kumar</strong> &nbsp;·&nbsp;
-    <a href="https://github.com/Anil2995/fintrack-api" target="_blank">GitHub Repository</a>
-    &nbsp;·&nbsp; Node.js + Express + MongoDB &nbsp;·&nbsp;
-    Deployed on Render + MongoDB Atlas
-  </p>
-</footer>
+  <script>
+    let token = null;
+    let currentRole = null;
+    let firstRecordId = null;
 
-<script>
-  // State
-  let token = null;
-  let currentRole = null;
-  let allRecords = [];
-  let firstRecordId = null;
+    const creds = {
+      admin:   { email: 'admin@finance.dev',   password: 'admin123' },
+      analyst: { email: 'analyst@finance.dev', password: 'analyst123' },
+      viewer:  { email: 'viewer@finance.dev',  password: 'viewer123'  },
+    };
 
-  // Credentials for seeded accounts
-  const creds = {
-    admin:   { email: 'admin@finance.dev',   password: 'admin123',   icon: '👑', color: 'var(--admin)'   },
-    analyst: { email: 'analyst@finance.dev', password: 'analyst123', icon: '📊', color: 'var(--analyst)' },
-    viewer:  { email: 'viewer@finance.dev',  password: 'viewer123',  icon: '👁️', color: 'var(--viewer)'  },
-  };
+    function log(msg, type = 'info') {
+      const el = document.getElementById('console-log');
+      const time = new Date().toLocaleTimeString('en-US', {hour12: false});
+      const line = document.createElement('div');
+      line.className = `log-${type} mb-1`;
+      line.innerHTML = `<span class="opacity-50 me-2">[${time}]</span> ${msg}`;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
 
-  // Console logger
-  function log(msg, type = 'info') {
-    const el = document.getElementById('console-log');
-    const line = document.createElement('div');
-    line.className = `log-${type}`;
-    line.textContent = msg;
-    el.appendChild(line);
-    el.scrollTop = el.scrollHeight;
-  }
+    const fmtCurrency = (n) => {
+      if (!n || isNaN(n)) return '—';
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+    };
 
-  // Format currency
-  function fmt(n) {
-    if (n === null || n === undefined || n === '—') return '—';
-    return '₹' + Number(n).toLocaleString('en-IN');
-  }
+    async function loginAs(role) {
+      const c = creds[role];
+      const btn = document.getElementById(`btn-${role}`);
+      const ogText = btn.textContent;
+      
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Authenticating...';
+      btn.disabled = true;
 
-  // Animate number counter
-  function animateValue(el, target) {
-    let start = 0;
-    const dur = 900;
-    const step = 16;
-    const inc = target / (dur / step);
-    const timer = setInterval(() => {
-      start = Math.min(start + inc, target);
-      el.textContent = fmt(Math.round(start));
-      if (start >= target) clearInterval(timer);
-    }, step);
-  }
+      // UI Reset
+      document.querySelectorAll('.role-card').forEach(card => card.classList.remove('active-role'));
+      document.getElementById(`card-${role}`).classList.add('active-role');
 
-  // Main login function
-  async function loginAs(role) {
-    const c = creds[role];
-    const btn = document.getElementById(`btn-${role}`);
-    btn.innerHTML = '<span class="spinner"></span> Logging in…';
-    btn.disabled = true;
+      log(`▶ POST /api/auth/login as ${c.email}`, 'req');
 
-    // Clear previous active cards
-    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
-    document.getElementById(`card-${role}`).classList.add('active');
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(c)
+        });
+        
+        const data = await res.json();
 
-    log(`\n> POST /api/auth/login  (role: ${role})`, 'req');
+        if (!res.ok) throw new Error(data.message || 'Login failed');
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: c.email, password: c.password }),
-      });
-      const data = await res.json();
+        token = data.token;
+        currentRole = role;
 
-      if (!res.ok) throw new Error(data.message);
+        log(`✔ 200 OK - Authenticated successfully (Role: ${data.user.role})`, 'ok');
+        
+        // Show application interface
+        document.getElementById('app-dashboard').style.display = 'block';
+        document.getElementById('session-email').textContent = c.email;
+        document.getElementById('session-role').textContent = data.user.role.toUpperCase();
+        
+        // Load data
+        await Promise.all([loadStats(), loadRecords('all')]);
+        
+        // Smooth scroll down to dashboard
+        document.getElementById('app-dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-      token = data.token;
-      currentRole = role;
+      } catch (err) {
+        log(`⨯ ${err.message}`, 'err');
+        alert("Authentication Error: " + err.message);
+      } finally {
+        btn.innerHTML = ogText;
+        btn.disabled = false;
+      }
+    }
 
-      log(`< ${res.status} OK  |  role: ${data.user.role}  |  token: ${token.slice(0,28)}...`, 'ok');
-
-      // Update banner
-      const banner = document.getElementById('role-banner');
-      banner.classList.add('visible');
-      document.getElementById('role-banner-icon').textContent = c.icon;
-      document.getElementById('banner-role-name').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-      document.getElementById('banner-email').textContent = c.email;
-
-      btn.textContent = `✓ Logged in as ${role}`;
-
-      // Reset other btns
-      ['admin','analyst','viewer'].forEach(r => {
-        if (r !== role) {
-          document.getElementById(`btn-${r}`).textContent = `Login as ${r.charAt(0).toUpperCase()+r.slice(1)}`;
-          document.getElementById(`btn-${r}`).disabled = false;
+    async function loadStats() {
+      log(`▶ GET /api/dashboard/summary`, 'req');
+      
+      try {
+        const res = await fetch('/api/dashboard/summary', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        
+        if (res.ok) {
+          log(`✔ 200 OK - Fetched dashboard analytics`, 'ok');
+          document.getElementById('stat-balance').textContent = fmtCurrency(data.summary.netBalance);
+          document.getElementById('stat-income').textContent = fmtCurrency(data.summary.totalIncome);
+          document.getElementById('stat-expense').textContent = fmtCurrency(data.summary.totalExpense);
+        } else {
+           throw new Error(data.message);
         }
-      });
-
-      // Reset RBAC result badges
-      ['create','update','delete','users','trends','summary'].forEach(id => {
-        const el = document.getElementById(`res-${id}`);
-        el.textContent = 'TRY';
-        el.className = 'action-result result-pending';
-      });
-
-      // Load dashboard and records
-      await loadDashboard();
-      await loadRecords('all');
-      showRbac();
-
-    } catch (err) {
-      log(`< ERROR: ${err.message}`, 'err');
-      btn.textContent = `Login as ${role.charAt(0).toUpperCase()+role.slice(1)}`;
-      btn.disabled = false;
-    }
-  }
-
-  async function loadDashboard() {
-    log(`\n> GET /api/dashboard/summary`, 'req');
-    const res = await fetch('/api/dashboard/summary', {
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    const data = await res.json();
-
-    const section = document.getElementById('stats-section');
-    section.classList.add('visible');
-    section.classList.add('fade-in');
-
-    if (res.ok) {
-      log(`< ${res.status} OK  |  income: ${data.summary.totalIncome}  expense: ${data.summary.totalExpense}  balance: ${data.summary.netBalance}`, 'ok');
-      animateValue(document.getElementById('stat-income'),  data.summary.totalIncome);
-      animateValue(document.getElementById('stat-expense'), data.summary.totalExpense);
-      animateValue(document.getElementById('stat-balance'), data.summary.netBalance);
-    } else {
-      log(`< ${res.status}  |  ${data.message}`, 'err');
-      document.getElementById('stat-income').textContent  = '—';
-      document.getElementById('stat-expense').textContent = '—';
-      document.getElementById('stat-balance').textContent = 'No Access';
-    }
-  }
-
-  async function loadRecords(typeFilter) {
-    const rSection = document.getElementById('records-section');
-    rSection.style.display = 'block';
-
-    let url = '/api/records?limit=10';
-    if (typeFilter !== 'all') url += `&type=${typeFilter}`;
-
-    log(`\n> GET ${url}`, 'req');
-    const res = await fetch(url, {
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    const data = await res.json();
-
-    const tbody = document.getElementById('records-tbody');
-
-    if (!res.ok) {
-      log(`< ${res.status}  |  ${data.message}`, 'err');
-      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="big">🔒</div><p>${data.message}</p></div></td></tr>`;
-      return;
+      } catch (e) {
+        log(`⨯ Failed to fetch analytics: ${e.message}`, 'err');
+      }
     }
 
-    log(`< ${res.status} OK  |  total: ${data.total}  page: ${data.page}/${data.pages}`, 'ok');
+    async function loadRecords(type) {
+      let url = '/api/records?limit=15';
+      if (type !== 'all') url += `&type=${type}`;
 
-    if (data.records.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="big">📭</div><p>No records found. Run <code>npm run seed</code> to populate test data.</p></div></td></tr>`;
-      return;
+      log(`▶ GET ${url}`, 'req');
+      
+      const tbody = document.getElementById('records-tbody');
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted border-0"><div class="spinner-border spinner-border-sm me-2"></div> Fetching data...</td></tr>`;
+
+      try {
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.message);
+        
+        log(`✔ 200 OK - Fetched ${data.records.length} records.`, 'ok');
+
+        if (data.records.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted border-0">No records found.</td></tr>`;
+          return;
+        }
+
+        firstRecordId = data.records[0]._id;
+
+        tbody.innerHTML = data.records.map(r => {
+          const isInc = r.type === 'income';
+          const dt = new Date(r.date).toLocaleDateString();
+          return `
+            <tr>
+              <td class="ps-4">
+                <span class="badge ${isInc ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} rounded-pill">
+                  <i class="bi ${isInc ? 'bi-arrow-down-left' : 'bi-arrow-up-right'} me-1"></i>${r.type}
+                </span>
+                <div class="small text-muted mt-1">${r.notes || 'No description'}</div>
+              </td>
+              <td><span class="badge bg-light text-dark border">${r.category}</span></td>
+              <td class="text-secondary small">${dt}</td>
+              <td class="${isInc ? 'text-success' : 'text-danger'} fw-semibold font-monospace">${isInc ? '+' : '-'}${fmtCurrency(r.amount)}</td>
+              <td class="pe-4 text-end">
+                <button class="btn btn-sm btn-light text-danger" onclick="tryAction('delete', '${r._id}')" title="Delete record"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch(e) {
+        log(`⨯ Failed to fetch records: ${e.message}`, 'err');
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger border-0"><i class="bi bi-exclamation-triangle me-2"></i> Access Denied or Error</td></tr>`;
+      }
     }
 
-    allRecords = data.records;
-    if (allRecords.length > 0) firstRecordId = allRecords[0]._id;
-
-    tbody.innerHTML = data.records.map(r => {
-      const isIncome = r.type === 'income';
-      const date = new Date(r.date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-      return `
-        <tr class="fade-in">
-          <td><span class="badge-type ${isIncome ? 'badge-income' : 'badge-expense'}">${isIncome ? '↑' : '↓'} ${r.type}</span></td>
-          <td>${r.category}</td>
-          <td class="td-amount ${isIncome ? 'inc' : 'exp'}">${isIncome ? '+' : '-'}${fmt(r.amount)}</td>
-          <td class="td-muted">${date}</td>
-          <td class="td-muted">${r.notes || '—'}</td>
-        </tr>`;
-    }).join('');
-  }
-
-  function filterRecords(type, btn) {
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    if (token) loadRecords(type);
-  }
-
-  function showRbac() {
-    const s = document.getElementById('rbac-section');
-    s.classList.add('visible');
-    s.style.display = 'block';
-    s.classList.add('fade-in');
-  }
-
-  // RBAC action tests
-  async function tryAction(action) {
-    if (!token) { log('\n> Please log in first.', 'err'); return; }
-
-    const btn = document.getElementById(`res-${action}`);
-    btn.textContent = '...';
-    btn.className = 'action-result result-pending';
-
-    let method, url, body;
-
-    switch(action) {
-      case 'create':
-        method = 'POST'; url = '/api/records';
-        body = { amount: 1000, type: 'income', category: 'Demo Test', notes: 'RBAC check' };
-        break;
-      case 'update':
-        if (!firstRecordId) { btn.textContent = 'No record'; return; }
-        method = 'PUT'; url = `/api/records/${firstRecordId}`;
-        body = { amount: 9999, type: 'income', category: 'Updated', notes: 'RBAC update test' };
-        break;
-      case 'delete':
-        if (!firstRecordId) { btn.textContent = 'No record'; return; }
-        method = 'DELETE'; url = `/api/records/${firstRecordId}`;
-        break;
-      case 'users':
-        method = 'GET'; url = '/api/users'; break;
-      case 'trends':
-        method = 'GET'; url = '/api/dashboard/trends/monthly'; break;
-      case 'summary':
-        method = 'GET'; url = '/api/dashboard/summary'; break;
+    function filterRecords(type, btnObj) {
+      document.querySelectorAll('#record-filters .nav-link').forEach(n => n.classList.remove('active'));
+      btnObj.classList.add('active');
+      if (token) loadRecords(type);
     }
 
-    log(`\n> ${method} ${url}  (as ${currentRole})`, 'req');
+    async function tryAction(actionType, targetId = null) {
+      if(!token) return;
+      let url, method, body;
 
-    const opts = { method, headers: { Authorization: 'Bearer ' + token } };
-    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+      if (actionType === 'create') {
+        url = '/api/records'; method = 'POST';
+        const randAmount = Math.floor(Math.random() * 50000) + 1000;
+        const isInc = Math.random() > 0.5;
+        body = { amount: randAmount, type: isInc ? 'income' : 'expense', category: 'Test Demo', notes: 'Generated from UI' };
+      } 
+      else if (actionType === 'delete') {
+        if (!targetId && !firstRecordId) return alert('No record to delete');
+        url = `/api/records/${targetId || firstRecordId}`; method = 'DELETE';
+      }
+      else if (actionType === 'summary') {
+        await loadStats();
+        return;
+      }
 
-    const res = await fetch(url, opts);
-    const data = await res.json();
+      log(`▶ ${method} ${url} ${body ? '(creating test artifact)' : ''}`, 'req');
+      
+      try {
+        const opts = { method, headers: { 'Authorization': `Bearer ${token}` } };
+        if (body) {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(body);
+        }
 
-    if (res.ok) {
-      log(`< ${res.status} OK  ·  access granted`, 'ok');
-      btn.textContent = `${res.status} OK`;
-      btn.className = 'action-result result-ok';
-      // reload records after create/update
-      if (action === 'create' || action === 'update') await loadRecords('all');
-      if (action === 'delete') { firstRecordId = null; await loadRecords('all'); }
-    } else {
-      log(`< ${res.status} ${data.message}`, 'err');
-      btn.textContent = `${res.status} ${res.status === 403 ? 'Forbidden' : 'Error'}`;
-      btn.className = 'action-result result-403';
+        const res = await fetch(url, opts);
+        const data = await res.json();
+
+        if (res.ok) {
+          log(`✔ ${res.status} OK - Action succeeded.`, 'ok');
+          loadRecords('all');
+          loadStats();
+        } else {
+          log(`⨯ ${res.status} HTTP - ${data.message}`, 'err');
+          alert("Action Restricted: " + data.message);
+        }
+      } catch (e) {
+        log(`⨯ Error: ${e.message}`, 'err');
+      }
     }
-  }
-</script>
-
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.css" integrity="sha384-YvpcrYf0tY3lHB60NNkmxc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
