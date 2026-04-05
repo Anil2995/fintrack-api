@@ -1,15 +1,26 @@
 const Record = require("../models/Record");
 const { AppError } = require("../utils/errorHandler");
 
-// Pulls filter params off the query string and builds a Mongo filter object.
-// Separated out so it's easy to unit test and extend later.
+// Builds a Mongo filter from query params. Kept separate so it's easy to
+// add new filter types (e.g. amount range) without touching the handler logic.
 const buildFilter = (query) => {
   const filter = {};
 
-  if (query.type)     filter.type     = query.type;
-  if (query.category) filter.category = new RegExp(query.category, "i"); // case-insensitive match
+  if (query.type) filter.type = query.type;
 
-  // Date range filtering — one or both sides can be provided
+  // If a specific category is given, do an exact-ish case-insensitive match.
+  // If there's a search keyword instead, broaden it to check both category and notes.
+  if (query.category) {
+    filter.category = new RegExp(query.category, "i");
+  } else if (query.search) {
+    // $or lets us match the keyword in either field — helpful for a global search bar
+    filter.$or = [
+      { category: new RegExp(query.search, "i") },
+      { notes:    new RegExp(query.search, "i") },
+    ];
+  }
+
+  // Date range — both sides are optional, so we only add the fields that are present
   if (query.startDate || query.endDate) {
     filter.date = {};
     if (query.startDate) filter.date.$gte = new Date(query.startDate);
@@ -27,7 +38,7 @@ const getAllRecords = async (req, res, next) => {
     const limit = Math.min(100, parseInt(req.query.limit) || 20);
     const skip  = (page - 1) * limit;
 
-    // Run count and data fetch together — saves one round-trip vs sequential awaits
+    // Fetch records and total count in parallel — one less round-trip to Mongo
     const [records, total] = await Promise.all([
       Record.find(filter)
         .populate("createdBy", "name email")
@@ -91,8 +102,8 @@ const updateRecord = async (req, res, next) => {
   }
 };
 
-// Soft delete — flips isDeleted instead of removing the document.
-// The pre-find hook in Record.js hides these from all future queries automatically.
+// Soft delete — sets the isDeleted flag rather than destroying the document.
+// The pre-find hook in Record.js automatically hides these from every future query.
 const deleteRecord = async (req, res, next) => {
   try {
     const record = await Record.findOneAndUpdate(

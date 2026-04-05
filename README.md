@@ -14,6 +14,7 @@ A backend API for a finance dashboard system with role-based access control, bui
 | Auth | JWT (jsonwebtoken) |
 | Validation | express-validator |
 | Password hashing | bcryptjs |
+| Rate limiting | express-rate-limit |
 
 ---
 
@@ -38,11 +39,22 @@ npm install
 cp .env.example .env
 # Open .env and fill in MONGO_URI and JWT_SECRET
 
-# 4. Start in dev mode
+# 4. Seed test data (optional but recommended)
+npm run seed
+
+# 5. Start in dev mode
 npm run dev
 ```
 
 The server starts on `http://localhost:5000` by default.
+
+After running the seed, three test accounts are ready:
+
+| Email | Password | Role |
+|---|---|---|
+| admin@finance.dev | admin123 | admin |
+| analyst@finance.dev | analyst123 | analyst |
+| viewer@finance.dev | viewer123 | viewer |
 
 ---
 
@@ -62,7 +74,7 @@ finance-backend/
 │   ├── services/
 │   │   ├── authService.js      # Register, login, getMe
 │   │   ├── userService.js      # Admin user CRUD
-│   │   ├── recordService.js    # Record CRUD + filtering + pagination
+│   │   ├── recordService.js    # Record CRUD + filtering + search + pagination
 │   │   └── dashboardService.js # Aggregation endpoints
 │   ├── routes/
 │   │   ├── authRoutes.js
@@ -71,8 +83,9 @@ finance-backend/
 │   │   └── dashboardRoutes.js
 │   ├── utils/
 │   │   └── errorHandler.js     # AppError class + central error handler
-│   ├── app.js                  # Express app setup
+│   ├── app.js                  # Express app setup + rate limiting
 │   └── server.js               # Entry point
+├── seed.js                     # Populates DB with sample data for testing
 ├── .env.example
 ├── .gitignore
 └── package.json
@@ -80,13 +93,17 @@ finance-backend/
 
 ---
 
-## Roles
+## Roles and Permissions
 
-| Role | Can do |
-|---|---|
-| **viewer** | Read financial records (`GET /api/records`) |
-| **analyst** | Everything viewer can do + create/update records + access dashboard analytics |
-| **admin** | Full access — manage users, delete records, all analyst permissions |
+| Action | viewer | analyst | admin |
+|---|:---:|:---:|:---:|
+| View financial records | ✅ | ✅ | ✅ |
+| Create records | ❌ | ✅ | ✅ |
+| Update records | ❌ | ✅ | ✅ |
+| Delete records (soft) | ❌ | ❌ | ✅ |
+| View dashboard summary | ✅ | ✅ | ✅ |
+| View monthly/weekly trends | ❌ | ✅ | ✅ |
+| Manage users | ❌ | ❌ | ✅ |
 
 ---
 
@@ -118,7 +135,10 @@ finance-backend/
 }
 ```
 
-Response includes a `token` field. Pass this in the `Authorization: Bearer <token>` header for all protected routes.
+Response includes a `token` field. Pass this in all protected requests:
+```
+Authorization: Bearer <token>
+```
 
 ---
 
@@ -131,7 +151,7 @@ Response includes a `token` field. Pass this in the `Authorization: Bearer <toke
 | PUT | `/api/users/:id` | Update role or isActive status |
 | DELETE | `/api/users/:id` | Delete a user |
 
-**PUT /api/users/:id** — body can include:
+**PUT /api/users/:id**
 ```json
 {
   "role": "analyst",
@@ -145,8 +165,8 @@ Response includes a `token` field. Pass this in the `Authorization: Bearer <toke
 
 | Method | Endpoint | Roles | Description |
 |---|---|---|---|
-| GET | `/api/records` | viewer, analyst, admin | List records with optional filters |
-| GET | `/api/records/:id` | viewer, analyst, admin | Get a single record |
+| GET | `/api/records` | All | List records with optional filters |
+| GET | `/api/records/:id` | All | Get a single record |
 | POST | `/api/records` | analyst, admin | Create a record |
 | PUT | `/api/records/:id` | analyst, admin | Update a record |
 | DELETE | `/api/records/:id` | admin | Soft delete a record |
@@ -162,12 +182,13 @@ Response includes a `token` field. Pass this in the `Authorization: Bearer <toke
 }
 ```
 
-**GET /api/records — query parameters:**
+**GET /api/records — query parameters**
 
 | Param | Example | Description |
 |---|---|---|
-| `type` | `?type=expense` | Filter by type |
+| `type` | `?type=expense` | Filter by income or expense |
 | `category` | `?category=food` | Case-insensitive category match |
+| `search` | `?search=salary` | Keyword search across category + notes |
 | `startDate` | `?startDate=2025-01-01` | Records from this date |
 | `endDate` | `?endDate=2025-03-31` | Records up to this date |
 | `page` | `?page=2` | Page number (default: 1) |
@@ -175,15 +196,15 @@ Response includes a `token` field. Pass this in the `Authorization: Bearer <toke
 
 ---
 
-### Dashboard (Analyst and Admin)
+### Dashboard
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/dashboard/summary` | Total income, expense, net balance, category breakdown, recent activity |
-| GET | `/api/dashboard/trends/monthly` | Income vs expense grouped by month (last 12 months) |
-| GET | `/api/dashboard/trends/weekly` | Income vs expense grouped by ISO week (last 8 weeks) |
+| Method | Endpoint | Roles | Description |
+|---|---|---|---|
+| GET | `/api/dashboard/summary` | All | Totals, category breakdown, recent activity |
+| GET | `/api/dashboard/trends/monthly` | analyst, admin | Income vs expense by month (last 12) |
+| GET | `/api/dashboard/trends/weekly` | analyst, admin | Income vs expense by ISO week (last 8) |
 
-**GET /api/dashboard/summary — example response:**
+**GET /api/dashboard/summary — example response**
 ```json
 {
   "success": true,
@@ -203,12 +224,12 @@ Response includes a `token` field. Pass this in the `Authorization: Bearer <toke
 
 ## Error Handling
 
-All errors follow this shape:
+All errors follow a consistent shape:
 
 ```json
 {
   "success": false,
-  "message": "Descriptive error message here."
+  "message": "Descriptive message here."
 }
 ```
 
@@ -216,37 +237,53 @@ All errors follow this shape:
 |---|---|
 | 400 | Bad request — validation failed or invalid input |
 | 401 | Unauthenticated — missing or invalid token |
-| 403 | Forbidden — authenticated but wrong role |
+| 403 | Forbidden — authenticated but insufficient role |
 | 404 | Resource not found |
+| 429 | Too many requests — rate limit hit |
 | 500 | Unexpected server error |
+
+---
+
+## Rate Limiting
+
+- **All routes**: 100 requests per 15 minutes per IP
+- **Auth routes** (`/api/auth/*`): 20 requests per 15 minutes per IP  
+  This tighter limit is specifically to make brute force login attacks impractical.
 
 ---
 
 ## Design Decisions and Assumptions
 
-**Soft deletes for records** — when a record is "deleted" via the API, it gets an `isDeleted: true` flag rather than being removed. This keeps an audit trail. A Mongoose pre-find hook automatically filters these out of all normal queries, so they're invisible without touching the flag.
+**Soft deletes for records** — records get `isDeleted: true` instead of being removed. This keeps an audit trail. A Mongoose pre-find hook hides them automatically from all normal queries.
 
-**Password field exclusion** — the User schema marks `password` with `select: false`. It never shows up in query results unless explicitly requested. The login handler asks for it with `.select("+password")`.
+**Viewer dashboard access** — viewers can see the `/api/dashboard/summary` endpoint (total income, expense, net balance). The requirement says "Viewer: Can only view dashboard data," so this makes sense. Trend analytics are analyst-only since those are deeper insights, not just a summary.
 
-**Role hierarchy** — the three roles form an ascending privilege ladder: viewer → analyst → admin. Each level includes everything the level below can do, plus more.
+**Password field exclusion** — the User schema marks `password` with `select: false`. It never appears in API responses. Login explicitly re-selects it with `.select("+password")`.
 
-**Self-modification prevention** — admins cannot update or delete their own account through the user management endpoints. This avoids situations where someone accidentally removes their own admin access.
+**Self-modification prevention** — admins can't update or delete their own account through the user management API. This prevents accidental self-lockout.
 
-**No separate controllers layer** — I kept handlers in the `services/` directory. For a project this size, adding a separate controllers folder would just mean moving the same code around. The services are small enough to be readable as-is.
+**No separate controllers layer** — the service files contain both business logic and response handling. For a project this size, splitting into controllers and services would just move the same code around with no real benefit. The services are small enough to stay readable as-is.
 
-**Token expiry** — JWT tokens expire based on `JWT_EXPIRES_IN` in the env file (default: 7 days). There's no refresh token mechanism — the assumption is that for an internal dashboard, re-login every week is acceptable.
+**Search vs. category filter** — `?category=` does an exact case-insensitive match on the category field. `?search=` is broader — it checks both category and notes. Both can coexist separately.
+
+**Token expiry** — JWTs expire based on `JWT_EXPIRES_IN` in the env (default 7 days). No refresh token mechanism — for an internal finance dashboard this is a fine tradeoff.
 
 ---
 
-## Quick Test Flow (Postman / Thunder Client)
+## Quick Test Flow
 
-1. `POST /api/auth/register` — create an admin user with `"role": "admin"`
-2. `POST /api/auth/login` — copy the token from the response
-3. Set `Authorization: Bearer <token>` in headers
-4. `POST /api/records` — create a few records
-5. `GET /api/dashboard/summary` — verify aggregations work
-6. `GET /api/records?type=expense&page=1` — test filtering
-7. Create a viewer account and verify `POST /api/records` returns 403
+```
+1. npm run seed                         # populate test data
+2. POST /api/auth/login                 # login as admin, grab token
+3. GET  /api/records                    # list records
+4. GET  /api/records?search=salary      # keyword search
+5. GET  /api/records?type=expense&page=1 # filtered + paginated
+6. POST /api/records                    # create a new record
+7. GET  /api/dashboard/summary          # aggregated totals
+8. GET  /api/dashboard/trends/monthly  # monthly trend data
+9. Login as viewer, try POST /records   # should 403
+10. Login as viewer, GET /dashboard/summary # should work (200)
+```
 
 ---
 
@@ -256,4 +293,4 @@ All errors follow this shape:
 GET /health
 ```
 
-Returns `{ "status": "ok" }` — useful for confirming the server is up without auth.
+Returns `{ "status": "ok" }` — no auth required.
