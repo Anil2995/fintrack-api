@@ -1,4 +1,10 @@
-# Finance Backend
+# Finance Backend — fintrack-api
+
+> 🚀 **Live API:** [https://fintrack-apifintrack-api.onrender.com](https://fintrack-apifintrack-api.onrender.com)
+> 
+> **Health check:** `GET /health` → `{"status":"ok"}`
+>
+> ⚠️ Hosted on Render free tier — may take ~30 seconds to wake up on the first request after inactivity.
 
 A backend API for a finance dashboard system with role-based access control, built with Node.js, Express, and MongoDB.
 
