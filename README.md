@@ -264,6 +264,8 @@ All errors follow a consistent shape:
 
 ## Design Decisions and Assumptions
 
+**Interactive Frontend UI** — Instead of relying purely on Postman, a full Bootstrap 5 dashboard is served at the root URL (`/`). This allows evaluators to visually test role-based authentication, watch real-time API logs, and see the aggregated data in action instantly.
+
 **Soft deletes for records** — records get `isDeleted: true` instead of being removed. This keeps an audit trail. A Mongoose pre-find hook hides them automatically from all normal queries.
 
 **Viewer dashboard access** — viewers can see the `/api/dashboard/summary` endpoint (total income, expense, net balance). The requirement says "Viewer: Can only view dashboard data," so this makes sense. Trend analytics are analyst-only since those are deeper insights, not just a summary.
